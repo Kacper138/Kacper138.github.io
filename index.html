@@ -10,14 +10,44 @@
 <body>
   <header data-include="components/header.html"></header>
 
-  <section class="hero">
+  <!--  <section class="hero">
     <div class="hero-content">
       <img src="img/profilowe.jpeg" alt="Zdjęcie profilowe" class="profile-pic">
       <h2>Cześć! Jestem <span>Kacper</span></h2>
       <p>Specjalizuję się w mechatronice, automatyce i projektowaniu systemów inteligentnych. Łączę mechanikę, elektronikę i programowanie w nowoczesnych rozwiązaniach.</p>
       <a href="portfolio.html" class="btn">Zobacz projekty</a>
     </div>
-  </section>
+  </section>    -->
+
+  <section class="system">
+  <h2 class="system-title">SYSTEM INTERFACE</h2>
+
+  <div class="circuit">
+    <!-- SVG linie -->
+    <svg class="lines" viewBox="0 0 800 400">
+      <line x1="100" y1="200" x2="300" y2="100" />
+      <line x1="300" y1="100" x2="500" y2="200" />
+      <line x1="300" y1="100" x2="300" y2="300" />
+    </svg>
+
+    <!-- Punkty -->
+    <div class="node" style="top: 45%; left: 10%;" data-link="portfolio.html">
+      <span>Projects</span>
+    </div>
+
+    <div class="node" style="top: 20%; left: 45%;" data-link="index.html">
+      <span>Core</span>
+    </div>
+
+    <div class="node" style="top: 45%; left: 70%;" data-link="hobby.html">
+      <span>Hobby</span>
+    </div>
+
+    <div class="node" style="top: 75%; left: 45%;" data-link="portfolio.html">
+      <span>Experiments</span>
+    </div>
+  </div>
+</section>
 
   <div data-include="components/footer.html"></div>
 
