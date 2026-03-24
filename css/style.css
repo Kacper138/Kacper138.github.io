@@ -59,7 +59,8 @@ header {
 }
 
 .profile-pic {
-  width: 150px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   border: 3px solid #38bdf8;
   margin-bottom: 20px;
@@ -244,6 +245,16 @@ section {
   border: 2px solid #00b4d8;
   border-radius: 50%;
   animation: pulse 2s infinite;
+}
+
+.node img {
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  filter: invert(1);
+}
+.node:hover img {
+  filter: invert(0);
 }
 
 @keyframes pulse {
