@@ -7,127 +7,127 @@
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Ślęża",
       "pasmo": "Masyw Ślęży",
-      "coords": [50.179, 20.088],
+      "coords": [50.865, 16.709],
       "height": "718 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Skopiec",
       "pasmo": "Góry Kaczawskie",
-      "coords": [45.179, 25.088],
+      "coords": [50.945, 15.885],
       "height": "724 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Kłodzka Góra",
       "pasmo": "Góry Bardzkie",
-      "coords": [45.179, 25.088],
+      "coords": [50.452, 16.753],
       "height": "765 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Chełmiec",
       "pasmo": "Góry Wałbrzyskie",
-      "coords": [45.179, 25.088],
+      "coords": [50.780, 16.212],
       "height": "869 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Biskupia Kopa",
       "pasmo": "Góry Opawskie",
-      "coords": [45.179, 25.088],
+      "coords": [50.257, 17.429],
       "height": "889 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Lubomir",
       "pasmo": "Góry Makowski",
       "coords": [49.767, 20.059],
       "height": "912 m.n.p.m",
-      "date": "",
-      "image": "",
+      "date": "25.10.2025",
+      "image": "img/lubomir.jpg",
       "done": true,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl/route/1384p"
     },
     {
       "name": "Szczeliniec Wielki",
       "pasmo": "Góry Stołowe",
-      "coords": [45.179, 25.088],
+      "coords": [50.484, 16.343],
       "height": "919 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Czupel",
       "pasmo": "Beskid Mały",
-      "coords": [45.179, 25.088],
+      "coords": [49.767, 19.155],
       "height": "934 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Waligóra",
       "pasmo": "Góry Kamienne",
-      "coords": [45.179, 25.088],
+      "coords": [50.681, 16.278],
       "height": "936 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Skalnik",
       "pasmo": "Rudawy Janowickie",
-      "coords": [45.179, 25.088],
+      "coords": [50.809, 15.901],
       "height": "945 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Jagodna",
       "pasmo": "Góry Bystrzyckie",
-      "coords": [45.179, 25.088],
+      "coords": [50.253, 16.567],
       "height": "977 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Kowadło",
       "pasmo": "Góry Złote",
-      "coords": [45.179, 25.088],
+      "coords": [50.264, 17.013],
       "height": "989 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Lackowa",
@@ -137,67 +137,67 @@
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Wielka Sowa",
       "pasmo": "Góry Sowie",
-      "coords": [45.179, 25.088],
+      "coords": [50.680, 16.486],
       "height": "1015 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Wysoka",
       "pasmo": "Pieniny",
-      "coords": [45.179, 25.088],
+      "coords": [49.380, 20.556],
       "height": "1050 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Orlica",
       "pasmo": "Góry Orlickie",
-      "coords": [45.179, 25.088],
+      "coords": [50.353, 16.361],
       "height": "1084 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Rudawiec",
       "pasmo": "Góry Bialskie",
-      "coords": [45.179, 25.088],
+      "coords": [50.245, 16.977],
       "height": "1112 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Wysoka Kopa",
       "pasmo": "Góry Izerskie",
-      "coords": [45.179, 25.088],
+      "coords": [50.850, 15.420],
       "height": "1126 m.n.p.m",
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Mogielica",
       "pasmo": "Beskid Wyspowy",
       "coords": [49.656, 20.277],
       "height": "1170 m.n.p.m",
-      "date": "",
-      "image": "",
+      "date": "25.10.2025",
+      "image": "img/mogielica.jpeg",
       "done": true,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl/route/138np"
     },
     {
       "name": "Skrzyczne",
@@ -207,7 +207,7 @@
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Radziejowa",
@@ -217,15 +217,15 @@
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Turbacz",
       "pasmo": "Gorce",
       "coords": [49.543, 20.111],
       "height": "1310 m.n.p.m",
-      "date": "",
-      "image": "",
+      "date": "12.02.2026",
+      "image": "img/turbacz.jpg",
       "done": true,
       "route": "https://mapa-turystyczna.pl/route/1szus"
     },
@@ -237,7 +237,7 @@
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl/route/3e73h"
     },
     {
       "name": "Śnieżnik",
@@ -247,7 +247,7 @@
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Śnieżka",
@@ -257,17 +257,17 @@
       "date": "",
       "image": "",
       "done": false,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl"
     },
     {
       "name": "Babia Góra",
       "pasmo": "Beskid Żywiecki",
       "coords": [49.574, 19.531],
       "height": "1725 m.n.p.m",
-      "date": "",
-      "image": "",
+      "date": "12.02.2025",
+      "image": "img/babia.jpg",
       "done": true,
-      "route": "https://mapa-turystyczna.pl/route/1szus"
+      "route": "https://mapa-turystyczna.pl/route/1n8so"
     },
     {
       "name": "Rysy",
@@ -275,7 +275,7 @@
       "coords": [49.180, 20.088],
       "height": "2499 m.n.p.m",
       "date": "28.06.2025",
-      "image": "img/profilowe.jpeg",
+      "image": "img/rysy.jpg",
       "done": true,
       "route": "https://mapa-turystyczna.pl/route?q=49.2545440,20.1029760;49.1795750,20.0881080;49.1957853,20.0654420;49.2545440,20.1029760"
     }

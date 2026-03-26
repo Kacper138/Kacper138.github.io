@@ -11,119 +11,120 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <style>
-    #map {
-      height: 600px;
-      border-radius: 10px;
-    }
-  </style>
 </head>
+
 <body>
+  <header data-include="components/header.html"></header>
 
-<header data-include="components/header.html"></header>
+  <section class="hobby">
+    <h2>Korona Gór Polski</h2>
 
-<section class="hobby">
-  <h2>Korona Gór Polski</h2>
-
-  <div class="progress-container">
-    <div id="progress-text"></div>
-    <div class="progress-bar">
-      <div id="progress-fill"></div>
+    <div class="progress-container">
+      <div id="progress-text"></div>
+      <div class="progress-bar">
+        <div id="progress-fill"></div>
+      </div>
     </div>
-  </div>
 
-  <div class="kgp-container">
-    <div id="map"></div>
-
-    <div class="kgp-list">
-      <h3>Szczyty</h3>
-      <ul id="peak-list"></ul>
+    <div class="kgp-container">
+      <div id="map"></div>
+      <div class="kgp-list">
+        <ul id="peak-list"></ul>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<div data-include="components/footer.html"></div>
-<script src="js/include.js"></script>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-
-  const map = L.map('map').setView([52.0, 19.0], 6);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
-
-  const greenIcon = L.icon({
-    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32]
-  });
-
-  const redIcon = L.icon({
-    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32]
-  });
+  <div data-include="components/footer.html"></div>
+  <script src="js/include.js"></script>
 
 
-fetch('js/kgp.json')
-  .then(res => res.json())
-  .then(peaks => {
+  <!-- Skrypt do mapy -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
 
-    const peakList = document.getElementById("peak-list");
-    let doneCount = 0;
+      const map = L.map('map').setView([52.0, 19.0], 6);
 
-    peaks.forEach(peak => {
-
-      if (peak.done) doneCount++;
-
-      const marker = L.marker(peak.coords, {
-        icon: peak.done ? greenIcon : redIcon
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
       }).addTo(map);
 
-      let popupContent = `<h3>${peak.name}</h3>
-        <p>Pasmo: ${peak.pasmo}</p>
-        <p>Wysokość: ${peak.height}</p>`;
-
-      if (peak.done) {
-        popupContent += `
-          <p>Data zdobycia: ${peak.date}</p>
-          <img src="${peak.image}" style="width:100%; border-radius:8px;">
-          <p><a href="${peak.route}" target="_blank">Zobacz trasę</a></p>
-        `;
-      } else {
-        popupContent += `
-          <p><i>Jeszcze nie zdobyty</i></p>
-          <p><a href="${peak.route}" target="_blank">Zobacz trasę</a></p>
-        `;
-      }
-
-      marker.bindPopup(popupContent, {minWidth: 250});
-
-      // lista
-      const li = document.createElement("li");
-      li.textContent = peak.name;
-      li.className = peak.done ? "done" : "not-done";
-
-      li.addEventListener("click", () => {
-        map.setView(peak.coords, 10);
-        marker.openPopup();
+      const greenIcon = L.icon({
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
       });
 
-      peakList.appendChild(li);
+      const redIcon = L.icon({
+        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
+      });
+
+    // LISTA - odczytanie danych z kgp.json
+    fetch('js/kgp.json')
+      .then(res => res.json())
+      .then(peaks => {
+
+        const peakList = document.getElementById("peak-list");
+        let doneCount = 0;
+
+        peaks.forEach(peak => {
+
+          if (peak.done) doneCount++;
+
+          const marker = L.marker(peak.coords, {
+            icon: peak.done ? greenIcon : redIcon
+          }).addTo(map);
+
+          let popupContent = `<h3>${peak.name}</h3>
+            <p>Pasmo: ${peak.pasmo}</p>
+            <p>Wysokość: ${peak.height}</p>`;
+
+          if (peak.done) {
+            popupContent += `
+              <p>Data zdobycia: ${peak.date}</p>
+              <img src="${peak.image}" style="width:100%; border-radius:8px;">
+              <p><a href="${peak.route}" target="_blank">Zobacz trasę</a></p>
+            `;
+          } else {
+            popupContent += `
+              <p><i>Jeszcze nie zdobyty</i></p>
+              <p><a href="${peak.route}" target="_blank">Zobacz trasę</a></p>
+            `;
+          }
+
+          marker.bindPopup(popupContent, {
+            minWidth: 250,
+          });
+
+          // lista
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <strong>${peak.name}</strong><br>
+            <span style="font-size: 0.9em; color: gray;">
+            ${peak.height}
+            </span>
+          `;
+          li.className = peak.done ? "done" : "not-done";
+
+          li.addEventListener("click", () => {
+            map.setView(peak.coords, 10);
+            marker.openPopup();
+          });
+          peakList.appendChild(li);
+        });
+
+        // progress bar
+        const progress = (doneCount / peaks.length) * 100;
+
+        document.getElementById("progress-fill").style.width = progress + "%";
+        document.getElementById("progress-text").textContent =
+          `Zdobyte: ${doneCount} / ${peaks.length}`;
+
+      });
     });
-
-    // progress bar
-    const progress = (doneCount / peaks.length) * 100;
-
-    document.getElementById("progress-fill").style.width = progress + "%";
-    document.getElementById("progress-text").textContent =
-      `Zdobyte: ${doneCount} / ${peaks.length}`;
-
-  });
-});
-</script>
+  </script>
 
 </body>
+
 </html>
