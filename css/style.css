@@ -25,6 +25,45 @@ body {
   color: #94a3b8;
 }
 
+/* overlay przejścia pomiędzy podstronami */
+#transition-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #0a0f1c;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+#transition-overlay::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,255,200,0.05) 2px,
+    rgba(0,255,200,0.05) 4px
+  );
+}
+
+/* aktywny overlay */
+#transition-overlay.active {
+  opacity: 1;
+}
+
+/* fade strony */
+body {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
 /* ###############   NAGŁÓWEK   ################# */
 .navbar {
   display: flex;
@@ -162,6 +201,7 @@ section {
   background: #0a0f1c;
   position: relative;
   overflow: hidden;
+  border-radius: 3%;
 }
 
 /* ############  STRONA TYTUŁOWA ############# */

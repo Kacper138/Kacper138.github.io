@@ -1,23 +1,6 @@
 async function includeHTML() {
   const elements = document.querySelectorAll('[data-include]');
-  for (const el of elements) {
-    const file = el.getAttribute('data-include');
-    try {
-      const response = await fetch(file);
-      if (!response.ok) throw new Error(`Nie udało się wczytać ${file}`);
-      const html = await response.text();
-      el.innerHTML = html;
-    } catch (error) {
-      console.error(error);
-    }
-  }
-}
-
-document.addEventListener('DOMContentLoaded', includeHTML);
-
-
-async function includeHTML() {
-  const elements = document.querySelectorAll('[data-include]');
+  
   for (const el of elements) {
     const file = el.getAttribute('data-include');
     try {
@@ -30,13 +13,13 @@ async function includeHTML() {
     }
   }
 
-  // Po wczytaniu elementów, uruchom podświetlanie aktywnego linku
+  // po wczytaniu headera
   highlightActiveLink();
 }
 
-// Funkcja podświetlająca aktywny link w menu
+// podświetlanie aktywnej strony
 function highlightActiveLink() {
-  const currentPage = window.location.pathname.split("/").pop(); // np. "portfolio.html"
+  const currentPage = window.location.pathname.split("/").pop();
   const navLinks = document.querySelectorAll(".nav-links a");
 
   navLinks.forEach(link => {
@@ -50,22 +33,49 @@ function highlightActiveLink() {
   });
 }
 
+// główne uruchomienie
 document.addEventListener("DOMContentLoaded", includeHTML);
 
 
-// Klikanie node'ów → przejście do podstron
-document.addEventListener("DOMContentLoaded", () => {
-  const nodes = document.querySelectorAll(".node");
 
-  nodes.forEach(node => {
-    node.addEventListener("click", () => {
-      const link = node.getAttribute("data-link");
+// GLOBALNE PRZEJŚCIA
+document.addEventListener("click", (e) => {
+  const link = e.target.closest("a, .node");
 
-      // efekt przejścia
-      document.body.style.opacity = "0";
-      setTimeout(() => {
-        window.location.href = link;
-      }, 300);
-    });
-  });
+  if (!link) return;
+
+  const url = link.getAttribute("href") || link.getAttribute("data-link");
+
+  // jeśli brak URL → nie ruszaj
+  if (!url || url.startsWith("#")) return;
+
+  const overlay = document.getElementById("transition-overlay");
+
+  // jeśli overlay nie istnieje → normalne działanie
+  if (!overlay) return;
+
+  e.preventDefault();
+
+  overlay.classList.add("active");
+  document.body.style.opacity = "0";
+
+  setTimeout(() => {
+    window.location.href = url;
+  }, 400);
+});
+
+
+// naprawa powrotu (back button)
+window.addEventListener("pageshow", () => {
+  const overlay = document.getElementById("transition-overlay");
+
+  if (overlay) overlay.classList.remove("active");
+  document.body.style.opacity = "1";
+});
+
+window.addEventListener("load", () => {
+  const overlay = document.getElementById("transition-overlay");
+
+  if (overlay) overlay.classList.remove("active");
+  document.body.style.opacity = "1";
 });
