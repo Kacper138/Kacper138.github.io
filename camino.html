@@ -6,15 +6,186 @@
   <link rel="icon" type="image/x-icon" href="img/favicon.ico">
   <title>Camino | Podwika</title>
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- GPX -->
+  <script src="https://unpkg.com/leaflet-gpx/gpx.js"></script>
 </head>
+
 <body>
   <header data-include="components/header.html"></header>
 
-  
+  <section class="camino">
+    <h2>Camino de Santiago</h2>
+    <div class="camino-container">
+      <div id="map"></div>
+      <div class="camino-list">
+        <ul id="day-list"></ul>
+      </div>
+    </div>
+  </section>
 
   <div data-include="components/footer.html"></div>
-
   <script src="js/include.js"></script>
+
+  <script>
+  let routes = [];
+
+  document.addEventListener("DOMContentLoaded", () => {
+
+    const map = L.map('map').setView([43.0, -5.0], 6);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    function highlightRoute(gpxLayer) {
+      routes.forEach(r => r.setStyle({ color: "#00b4d8", weight: 3, opacity: 0.7 }));
+      gpxLayer.setStyle({ color: "#00e0ff", weight: 6, opacity: 1 });
+      map.fitBounds(gpxLayer.getBounds());
+    }
+
+    fetch('js/camino.json')
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
+        return res.json();
+      })
+      .then(data => loadRouteMode(data, map))
+      .catch(err => {
+        console.error("Błąd ładowania camino.json:", err);
+        document.getElementById("day-list").innerHTML =
+          "<li>Nie udało się załadować danych tras.</li>";
+      });
+
+
+    function loadRouteMode(data, map) {
+      const list = document.getElementById("day-list");
+      let loadedCount = 0;
+
+      data.forEach(route => {
+
+        // ----- Warstwa GPX trasy -----
+        const gpxLayer = new L.GPX(route.gpx, {
+          async: true,
+          polyline_options: { color: "#00b4d8", weight: 3, opacity: 0.4 },
+          marker_options: { startIconUrl: null, endIconUrl: null, shadowUrl: null }
+        });
+
+        gpxLayer.on('loaded', () => {
+          loadedCount++;
+          if (loadedCount === data.length) {
+            map.fitBounds(L.featureGroup(routes).getBounds());
+          }
+        });
+
+        gpxLayer.addTo(map);
+        routes.push(gpxLayer);
+
+        // ----- Element listy trasy -----
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>${route.name}</strong><br><span>${route.distance}</span>`;
+
+        li.addEventListener("click", () => {
+          document.querySelectorAll("#day-list > li").forEach(el => el.classList.remove("active"));
+          li.classList.add("active");
+          highlightRoute(gpxLayer);
+        });
+
+        // ----- Przycisk Etapy -----
+        const btn = document.createElement("button");
+        btn.textContent = "Etapy ↓";
+        btn.classList.add("stage-btn");
+
+        // Stan przycisku i warstw etapów dla tej trasy
+        let stagesOpen = false;
+        let stageLayers = [];
+        let stagesLoaded = false;
+
+        const subList = document.createElement("ul"); // <ul> na etapy, schowany na start
+
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+
+          if (stagesOpen) {
+            // ----- ZWIJANIE -----
+            subList.style.display = "none";
+            stageLayers.forEach(l => map.removeLayer(l));
+            btn.textContent = "Etapy ↓";
+            stagesOpen = false;
+
+            // Przywróć widok wszystkich tras
+            routes.forEach(r => r.setStyle({ color: "#00b4d8", weight: 3, opacity: 0.4 }));
+            if (routes.length) map.fitBounds(L.featureGroup(routes).getBounds());
+
+          } else {
+            // ----- ROZWIJANIE -----
+            btn.textContent = "Zwiń ↑";
+            stagesOpen = true;
+            subList.style.display = "block";
+
+            // Przyciemnij pozostałe trasy
+            routes.forEach(r => r.setStyle({ color: "#00b4d8", weight: 2, opacity: 0.2 }));
+
+            if (!stagesLoaded) {
+              // Pierwsze otwarcie — załaduj GPX etapów
+              stagesLoaded = true;
+              let stageLoadedCount = 0;
+
+              route.stages.forEach(stage => {
+                const stageLayer = new L.GPX(stage.gpx, {
+                  async: true,
+                  polyline_options: { color: "#00b4d8", weight: 3, opacity: 0.5 },
+                  marker_options: { startIconUrl: null, endIconUrl: null, shadowUrl: null }
+                }).addTo(map);
+
+                stageLayers.push(stageLayer);
+
+                stageLayer.on('loaded', () => {
+                  stageLoadedCount++;
+                  if (stageLoadedCount === route.stages.length) {
+                    map.fitBounds(L.featureGroup(stageLayers).getBounds());
+                  }
+                });
+
+                // Element etapu na liście
+                const stageLi = document.createElement("li");
+                stageLi.innerHTML = `<strong>${stage.name}</strong><br><span>${stage.dist}</span>`;
+
+                stageLi.addEventListener("click", (e) => {
+                  e.stopPropagation();
+
+                  subList.querySelectorAll("li").forEach(el => el.classList.remove("active"));
+                  stageLi.classList.add("active");
+
+                  stageLayers.forEach(l => l.setStyle({ color: "#00b4d8", weight: 3, opacity: 0.3 }));
+                  stageLayer.setStyle({ color: "#00e0ff", weight: 6, opacity: 1 });
+                  map.fitBounds(stageLayer.getBounds());
+                });
+
+                subList.appendChild(stageLi);
+              });
+
+            } else {
+              // Kolejne otwarcia — tylko ponownie dodaj warstwy na mapę
+              stageLayers.forEach(l => l.addTo(map));
+              if (stageLayers.length) {
+                map.fitBounds(L.featureGroup(stageLayers).getBounds());
+              }
+            }
+          }
+        });
+
+        li.appendChild(btn);
+        li.appendChild(subList); // subList zawsze w DOM, tylko ukryty/pokazany
+        list.appendChild(li);
+      });
+    }
+
+  });
+</script>
 
 </body>
 </html>
