@@ -5,28 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/x-icon" href="img/favicon.ico">
   <title>Camino | Podwika</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/navbar.css">
+  <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/map.css">
 
-  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <!-- GPX -->
   <script src="https://unpkg.com/leaflet-gpx/gpx.js"></script>
 </head>
 
 <body>
   <header data-include="components/header.html"></header>
 
-  <section class="camino">
-    <h2>Camino de Santiago</h2>
-    <div class="camino-container">
-      <div id="map"></div>
-      <div class="camino-list">
-        <ul id="day-list"></ul>
-      </div>
+  <section class="hobby">
+  <h2>Camino de Santiago</h2>
+
+  <div class="progress-container">
+    <div id="progress-text"></div>
+    <div class="progress-bar">
+      <div id="progress-fill"></div>
     </div>
-  </section>
+  </div>
+
+  <div class="kgp-container camino-container">
+    <div id="map"></div>
+    <div class="kgp-list">
+      <ul id="day-list"></ul>
+    </div>
+  </div>
+</section>
 
   <div data-include="components/footer.html"></div>
   <script src="js/include.js"></script>
@@ -53,7 +64,18 @@
         if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
         return res.json();
       })
-      .then(data => loadRouteMode(data, map))
+      .then(data => {
+        const totalKm = data.reduce((sum, route) => {
+          const km = parseFloat(route.distance);
+          return sum + (isNaN(km) ? 0 : km);
+        }, 0);
+
+        document.getElementById("progress-text").textContent =
+          `Łączny dystans: ${totalKm} km`;
+        document.getElementById("progress-fill").style.width = "100%";
+
+        loadRouteMode(data, map);
+      })
       .catch(err => {
         console.error("Błąd ładowania camino.json:", err);
         document.getElementById("day-list").innerHTML =

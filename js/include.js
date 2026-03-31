@@ -13,11 +13,10 @@ async function includeHTML() {
     }
   }
 
-  // po wczytaniu headera
   highlightActiveLink();
+  initHamburger();
 }
 
-// podświetlanie aktywnej strony
 function highlightActiveLink() {
   const currentPage = window.location.pathname.split("/").pop();
   const navLinks = document.querySelectorAll(".nav-links a");
@@ -33,9 +32,26 @@ function highlightActiveLink() {
   });
 }
 
-// główne uruchomienie
-document.addEventListener("DOMContentLoaded", includeHTML);
+function initHamburger() {
+  const toggle = document.querySelector(".nav-toggle");
+  const navLinks = document.querySelector(".nav-links");
 
+  if (!toggle || !navLinks) return;
+
+  toggle.addEventListener("click", () => {
+    toggle.classList.toggle("open");
+    navLinks.classList.toggle("open");
+  });
+
+  navLinks.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      toggle.classList.remove("open");
+      navLinks.classList.remove("open");
+    });
+  });
+}
+
+document.addEventListener("DOMContentLoaded", includeHTML);
 
 
 // GLOBALNE PRZEJŚCIA
@@ -46,12 +62,10 @@ document.addEventListener("click", (e) => {
 
   const url = link.getAttribute("href") || link.getAttribute("data-link");
 
-  // jeśli brak URL → nie ruszaj
   if (!url || url.startsWith("#")) return;
 
   const overlay = document.getElementById("transition-overlay");
 
-  // jeśli overlay nie istnieje → normalne działanie
   if (!overlay) return;
 
   e.preventDefault();
@@ -64,37 +78,14 @@ document.addEventListener("click", (e) => {
   }, 400);
 });
 
-
-// naprawa powrotu (back button)
 window.addEventListener("pageshow", () => {
   const overlay = document.getElementById("transition-overlay");
-
   if (overlay) overlay.classList.remove("active");
   document.body.style.opacity = "1";
 });
 
 window.addEventListener("load", () => {
   const overlay = document.getElementById("transition-overlay");
-
   if (overlay) overlay.classList.remove("active");
   document.body.style.opacity = "1";
-});
-
-// obsługa nagłówka i menu
-document.addEventListener("DOMContentLoaded", () => {
-  const toggle = document.querySelector(".nav-toggle");
-  const navLinks = document.querySelector(".nav-links");
-
-  toggle.addEventListener("click", () => {
-    toggle.classList.toggle("open");
-    navLinks.classList.toggle("open");
-  });
-
-  // Zamknij menu po kliknięciu w link
-  navLinks.querySelectorAll("a").forEach(link => {
-    link.addEventListener("click", () => {
-      toggle.classList.remove("open");
-      navLinks.classList.remove("open");
-    });
-  });
 });
