@@ -79,3 +79,22 @@ window.addEventListener("load", () => {
   if (overlay) overlay.classList.remove("active");
   document.body.style.opacity = "1";
 });
+
+// obsługa nagłówka i menu
+document.addEventListener("DOMContentLoaded", () => {
+  const toggle = document.querySelector(".nav-toggle");
+  const navLinks = document.querySelector(".nav-links");
+
+  toggle.addEventListener("click", () => {
+    toggle.classList.toggle("open");
+    navLinks.classList.toggle("open");
+  });
+
+  // Zamknij menu po kliknięciu w link
+  navLinks.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      toggle.classList.remove("open");
+      navLinks.classList.remove("open");
+    });
+  });
+});
