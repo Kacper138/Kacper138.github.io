@@ -76,6 +76,34 @@
   transition: width 0.5s ease;
 }
 
+/* KGP - informacje o szczycie */
+
+#peak-list ul {
+  margin-top: 8px;
+  padding-left: 12px;
+  border-left: 2px solid #00b4d8;
+  list-style: none;
+}
+
+#peak-list ul li {
+  color: black;
+  font-size: 0.9em;
+  padding: 7px 10px;
+  cursor: default;
+}
+
+#peak-list ul li a {
+  color: #00b4d8;
+  color: #0a0f1c;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+#peak-list ul li a:hover {
+  text-decoration: underline;
+}
+
 /* ── Camino — przycisk etapów ── */
 .stage-btn {
   margin-top: 8px;

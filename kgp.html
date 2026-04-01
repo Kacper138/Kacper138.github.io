@@ -34,6 +34,7 @@
       <div id="map"></div>
       <div class="kgp-list">
         <ul id="peak-list"></ul>
+        <div id="peak-detail" style="display:none"></div>
       </div>
     </div>
   </section>
@@ -45,91 +46,142 @@
   <script>
     document.addEventListener("DOMContentLoaded", () => {
 
-      const map = L.map('map').setView([52.0, 19.0], 6);
+  const map = L.map('map').setView([52.0, 19.0], 6);
 
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 200);
+  setTimeout(() => { map.invalidateSize(); }, 200);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-      }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
 
-      const greenIcon = L.icon({
-        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
-        iconSize: [32, 32],
-        iconAnchor: [16, 32]
-      });
+  const greenIcon = L.icon({
+    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+    iconSize: [32, 32], iconAnchor: [16, 32]
+  });
 
-      const redIcon = L.icon({
-        iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-        iconSize: [32, 32],
-        iconAnchor: [16, 32]
-      });
+  const redIcon = L.icon({
+    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+    iconSize: [32, 32], iconAnchor: [16, 32]
+  });
 
-    // LISTA - odczytanie danych z kgp.json
-    fetch('js/kgp.json')
-      .then(res => res.json())
-      .then(peaks => {
+  fetch('js/kgp.json')
+    .then(res => res.json())
+    .then(peaks => {
 
-        const peakList = document.getElementById("peak-list");
-        let doneCount = 0;
+      const peakList = document.getElementById("peak-list");
+      const peakDetail = document.getElementById("peak-detail");
+      let doneCount = 0;
 
-        peaks.forEach(peak => {
+      peaks.forEach(peak => {
 
-          if (peak.done) doneCount++;
+  if (peak.done) doneCount++;
 
-          const marker = L.marker(peak.coords, {
-            icon: peak.done ? greenIcon : redIcon
-          }).addTo(map);
+  const marker = L.marker(peak.coords, {
+    icon: peak.done ? greenIcon : redIcon
+  }).addTo(map);
 
-          let popupContent = `<h3>${peak.name}</h3>
-            <p>Pasmo: ${peak.pasmo}</p>
-            <p>Wysokość: ${peak.height}</p>`;
+  // popup — nazwa + zdjęcie
+  let popupContent = `<strong>${peak.name}</strong><br><em>${peak.height}</em>`;
+  if (peak.done && peak.image) {
+    popupContent += `<br><img src="${peak.image}" style="width:200px; border-radius:6px; margin-top:6px;">`;
+  }
 
-          if (peak.done) {
-            popupContent += `
-              <p>Data zdobycia: ${peak.date}</p>
-              <img src="${peak.image}" style="width:100%; border-radius:8px;">
-              <p><a href="${peak.route}" target="_blank">Zobacz trasę</a></p>
-            `;
-          } else {
-            popupContent += `
-              <p><i>Jeszcze nie zdobyty</i></p>
-              <p><a href="${peak.route}" target="_blank">Zobacz trasę</a></p>
-            `;
-          }
+  marker.bindPopup(popupContent, {
+    minWidth: 220,
+    autoPan: true,
+    autoPanPadding: [20, 20]
+  });
 
-          marker.bindPopup(popupContent, {
-            minWidth: 250,
-          });
+  // element listy
+  const li = document.createElement("li");
+  li.className = peak.done ? "done" : "not-done";
+  li.innerHTML = `
+    <strong>${peak.name}</strong><br>
+    <span style="font-size:0.9em;color: #0a0f1c;">${peak.height}</span>
+  `;
 
-          // lista
-          const li = document.createElement("li");
-          li.innerHTML = `
-            <strong>${peak.name}</strong><br>
-            <span style="font-size: 0.9em; color: gray;">
-            ${peak.height}
-            </span>
-          `;
-          li.className = peak.done ? "done" : "not-done";
+  // szczegóły rozwijane inline
+  const subList = document.createElement("ul");
+  subList.style.display = "none";
 
-          li.addEventListener("click", () => {
-            map.setView(peak.coords, 10);
-            marker.openPopup();
-          });
-          peakList.appendChild(li);
-        });
+  const detailLi = document.createElement("li");
+  detailLi.innerHTML = `
+    <strong>Pasmo:</strong> ${peak.pasmo}<br>
+    <strong>Data:</strong>
+    ${peak.done
+      ? `${peak.date}<br>
+         <a href="${peak.route}" target="_blank">Zobacz trasę</a>`
+      : `<em> -</em><br>
+         <a href="https://kgp.info.pl/wykaz-szczytow" target="_blank">kgp.info.pl</a>`
+    }
+  `;
 
-        // progress bar
-        const progress = (doneCount / peaks.length) * 100;
+  subList.appendChild(detailLi);
+  li.appendChild(subList);
 
-        document.getElementById("progress-fill").style.width = progress + "%";
-        document.getElementById("progress-text").textContent =
-          `Zdobyte: ${doneCount} / ${peaks.length}`;
+  // kliknięcie — mapa + rozwinięcie
+  function openPeak() {
+    map.setView(peak.coords, 10);
+    marker.openPopup();
 
-      });
+    const isOpen = subList.style.display === "block";
+
+    // zwiń wszystkie inne
+    document.querySelectorAll("#peak-list > li ul").forEach(ul => {
+      ul.style.display = "none";
     });
+    document.querySelectorAll("#peak-list > li").forEach(el => {
+      el.classList.remove("active");
+    });
+
+    if (!isOpen) {
+      subList.style.display = "block";
+      li.classList.add("active");
+    }
+
+    li.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  li.addEventListener("click", openPeak);
+  marker.on("click", openPeak);
+
+  peakList.appendChild(li);
+});
+
+      // ── Progress bar ──
+      const progress = (doneCount / peaks.length) * 100;
+      document.getElementById("progress-fill").style.width = progress + "%";
+      document.getElementById("progress-text").textContent =
+        `Zdobyte: ${doneCount} / ${peaks.length}`;
+
+      // ── Funkcja szczegółów w panelu ──
+      function showDetail(peak) {
+        peakList.style.display = "none";
+        peakDetail.style.display = "block";
+
+        peakDetail.innerHTML = `
+          <button id="back-btn">← Powrót</button>
+          <h3>${peak.name}</h3>
+          <p><strong>Pasmo:</strong> ${peak.pasmo}</p>
+          <p><strong>Wysokość:</strong> ${peak.height}</p>
+          ${peak.done ? `
+            <p><strong>Data zdobycia:</strong> ${peak.date}</p>
+            ${peak.image ? `<img src="${peak.image}" style="width:100%; border-radius:8px; margin: 8px 0;">` : ""}
+            <a href="${peak.route}" target="_blank">Zobacz trasę</a>
+          ` : `
+            <p><em>Jeszcze nie zdobyty</em></p>
+            <a href="${peak.route}" target="_blank">Zobacz trasę</a>
+          `}
+        `;
+
+        document.getElementById("back-btn").addEventListener("click", () => {
+          peakDetail.style.display = "none";
+          peakList.style.display = "block";
+        });
+      }
+
+    });
+});
   </script>
 
 </body>
