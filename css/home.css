@@ -39,8 +39,8 @@
 }
 
 @keyframes flow {
-  from { stroke-dashoffset: 0; }
-  to   { stroke-dashoffset: 20; }
+  from { stroke-dashoffset: 24; }
+  to   { stroke-dashoffset: 0; }
 }
 
 .node {
