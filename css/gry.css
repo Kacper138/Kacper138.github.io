@@ -1,0 +1,143 @@
+/* ═══════════════════════════════════════
+   GRY — Basketball
+   ═══════════════════════════════════════ */
+
+.gry-section {
+  max-width: 1100px;
+  margin: auto;
+  padding: 40px 20px 60px;
+  color: #e2e8f0;
+}
+
+.gry-header {
+  margin-bottom: 30px;
+}
+
+.gry-header h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: #f1f5f9;
+}
+
+.gry-header h2 span {
+  color: #00b4d8;
+  font-weight: 400;
+}
+
+.gry-subtitle {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ── WRAPPER ── */
+.game-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── TOPBAR ── */
+.game-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.game-topbar .score-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+}
+
+.game-topbar .score-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.game-topbar .score-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #00b4d8;
+  line-height: 1;
+}
+
+.score-card {
+  background: #1e293b;
+  border-radius: 10px;
+  border-left: 3px solid #00b4d8;
+}
+
+/* ── PRZYCISKI ── */
+
+.ctrl-btn {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.ctrl-btn:hover {
+  background: #00b4d8;
+  color: #0a0f1c;
+  border-color: #00b4d8;
+}
+
+/* ── CANVAS ── */
+.game-canvas-wrap {
+  position: relative;
+  flex: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #1e293b;
+  line-height: 0;
+}
+
+#game-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  cursor: crosshair;
+}
+
+/* ── POPUP PUNKTÓW ── */
+.score-popup {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  font-size: 2rem;
+  font-weight: 700;
+  color: #00e0ff;
+  text-shadow: 0 0 20px #00b4d8;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.3s;
+  white-space: nowrap;
+}
+
+.score-popup.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-40px);
+}
+
+/* ── RESPONSYWNOŚĆ ── */
+@media (max-width: 700px) {
+  .game-topbar {
+    flex-wrap: wrap;
+  }
+
+  .game-topbar .score-card {
+    flex: 1;
+    min-width: 100px;
+  }
+}

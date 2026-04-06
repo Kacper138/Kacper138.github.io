@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/x-icon" href="img/favicon.ico">
+  <title>Gry | Podwika</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/navbar.css">
+  <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="css/gry.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+<body>
+  <header data-include="components/header.html"></header>
+
+  <section class="gry-section">
+    <div class="gry-header">
+      <h2>Gry <span>/ Basketball</span></h2>
+      <p class="gry-subtitle">Kliknij i przeciągnij aby wycelować — puść aby rzucić</p>
+    </div>
+
+    <div class="game-wrapper">
+
+      <div class="game-topbar">
+        <div class="score-card">
+          <div class="score-label">Punkty</div>
+          <div class="score-value" id="score">0</div>
+        </div>
+        <div class="score-card">
+          <div class="score-label">Najlepszy</div>
+          <div class="score-value" id="best">0</div>
+        </div>
+        <button class="ctrl-btn" id="reset-btn">↺ Reset</button>
+      </div>
+
+      <div class="game-canvas-wrap">
+        <canvas id="game-canvas"></canvas>
+        <div class="score-popup" id="score-popup"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <div data-include="components/footer.html"></div>
+  <script src="js/include.js"></script>
+
+  <script>
+  (function() {
+    const { Engine, Bodies, Body, World, Events, Runner } = Matter;
+
+    const canvas = document.getElementById("game-canvas");
+    const CANVAS_W = 700;
+    const CANVAS_H = 440;
+    canvas.width  = CANVAS_W;
+    canvas.height = CANVAS_H;
+    const ctx = canvas.getContext("2d");
+
+    // ── Kosz ──
+    const HOOP_X    = 560;
+    const HOOP_W    = 68;
+    const RIM_R     = 5;
+    let   hoopY     = 200;
+    let   hoopDir   = 1;
+    const HOOP_Y_MIN  = 120;
+    const HOOP_Y_MAX  = 280;
+    const HOOP_SPEED  = 1.2;
+
+    // ── Piłka ──
+    const BALL_R = 18;
+
+    function randomStart() {
+      return {
+        x: 80  + Math.random() * 180,
+        y: 200 + Math.random() * 120
+      };
+    }
+
+    // ── Fizyka ──
+    const engine = Engine.create({ gravity: { y: 2 } });
+    const world  = engine.world;
+
+    const floor = Bodies.rectangle(CANVAS_W/2, CANVAS_H + 25, CANVAS_W*2, 50, { isStatic: true });
+    let rimL  = Bodies.rectangle(HOOP_X - HOOP_W/2, hoopY, RIM_R*2, RIM_R*2, { isStatic: true, restitution: 0.4 });
+    let rimR  = Bodies.rectangle(HOOP_X + HOOP_W/2, hoopY, RIM_R*2, RIM_R*2, { isStatic: true, restitution: 0.4 });
+    let board = Bodies.rectangle(HOOP_X + HOOP_W/2 + 6, hoopY - 35, 8, 90,   { isStatic: true, restitution: 0.3 });
+    World.add(world, [floor, rimL, rimR, board]);
+
+    // ── Stan ──
+    let ball, ballActive, isDragging, dragCurrent, scoredThisThrow, ballPassedAbove;
+    let score = 0, best = 0;
+    let resetting = false;
+
+    // ── Efekty wizualne ──
+
+    // Ślad ognia (trail)
+    let trailParticles = [];
+
+    // Flash ekranu po trafieniu
+    let screenFlash = 0; // 0..1, zanika
+
+    // Poświata kosza (hoop glow) gdy piłka jest blisko
+    let hoopGlow = 0; // 0..1
+
+    // Animacja siatki po trafieniu
+    let netRipple = 0; // 0..1, zanika
+    let netRippleTimer = 0;
+
+    // Cząsteczki iskier przy odbiciu od obręczy
+    let sparkParticles = [];
+
+    // ── Trail ── 
+    function addTrail(x, y) {
+      trailParticles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: (Math.random() - 0.5) * 0.8,
+        life: 1.0,
+        size: BALL_R * (0.4 + Math.random() * 0.5),
+        hue: 20 + Math.random() * 30
+      });
+      if (trailParticles.length > 40) trailParticles.shift();
+    }
+
+    function updateTrail() {
+      for (let i = trailParticles.length - 1; i >= 0; i--) {
+        const p = trailParticles[i];
+        p.life -= 0.07;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.size *= 0.94;
+        if (p.life <= 0) trailParticles.splice(i, 1);
+      }
+    }
+
+    function drawTrail() {
+      for (const p of trailParticles) {
+        const alpha = p.life * 0.55;
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+        g.addColorStop(0,   `hsla(${p.hue}, 100%, 70%, ${alpha})`);
+        g.addColorStop(0.5, `hsla(${p.hue - 10}, 100%, 50%, ${alpha * 0.6})`);
+        g.addColorStop(1,   `hsla(${p.hue - 20}, 100%, 30%, 0)`);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = g;
+        ctx.fill();
+      }
+    }
+
+    // ── Iskry przy obręczy ──
+    function spawnSparks(cx, cy) {
+      for (let i = 0; i < 12; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 3;
+        sparkParticles.push({
+          x: cx, y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1.0,
+          size: 1.5 + Math.random() * 2
+        });
+      }
+    }
+
+    function updateSparks() {
+      for (let i = sparkParticles.length - 1; i >= 0; i--) {
+        const p = sparkParticles[i];
+        p.vy += 0.12;
+        p.x  += p.vx;
+        p.y  += p.vy;
+        p.life -= 0.06;
+        if (p.life <= 0) sparkParticles.splice(i, 1);
+      }
+    }
+
+    function drawSparks() {
+      for (const p of sparkParticles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 200, 60, ${p.life})`;
+        ctx.fill();
+      }
+    }
+
+    // ── Flash ekranu ──
+    function triggerFlash() {
+      screenFlash = 1.0;
+    }
+
+    function drawFlash() {
+      if (screenFlash <= 0) return;
+      ctx.fillStyle = `rgba(249, 115, 22, ${screenFlash * 0.22})`;
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      screenFlash -= 0.045;
+      if (screenFlash < 0) screenFlash = 0;
+    }
+
+    // ── Poświata kosza ──
+    function drawHoopGlow(alpha) {
+      if (alpha <= 0) return;
+      const g = ctx.createRadialGradient(HOOP_X, hoopY, 5, HOOP_X, hoopY, 60);
+      g.addColorStop(0,   `rgba(249, 115, 22, ${alpha * 0.35})`);
+      g.addColorStop(0.5, `rgba(249, 115, 22, ${alpha * 0.12})`);
+      g.addColorStop(1,   `rgba(249, 115, 22, 0)`);
+      ctx.beginPath();
+      ctx.arc(HOOP_X, hoopY, 60, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+    }
+
+    // ── Reset stanu ──
+    function resetState() {
+      resetting = false;
+      if (ball) World.remove(world, ball);
+      const sp = randomStart();
+      ball = Bodies.circle(sp.x, sp.y, BALL_R, {
+        restitution: 0.75,
+        friction: 0.05,
+        frictionAir: 0.013,
+        density: 0.003,
+        isStatic: true
+      });
+      World.add(world, ball);
+      ballActive      = false;
+      isDragging      = false;
+      dragCurrent     = null;
+      scoredThisThrow = false;
+      ballPassedAbove = false;
+      trailParticles  = [];
+    }
+    resetState();
+
+    // ── Detekcja kolizji z obręczą (iskry) ──
+    Events.on(engine, "collisionStart", (event) => {
+      for (const pair of event.pairs) {
+        const bodies = [pair.bodyA, pair.bodyB];
+        if (bodies.includes(ball) && (bodies.includes(rimL) || bodies.includes(rimR))) {
+          const cx = (pair.collision.supports[0] || ball.position).x;
+          const cy = (pair.collision.supports[0] || ball.position).y;
+          spawnSparks(
+            bodies.includes(rimL) ? HOOP_X - HOOP_W/2 : HOOP_X + HOOP_W/2,
+            hoopY
+          );
+        }
+      }
+    });
+
+    // ── Input ──
+    function getPos(e) {
+      const r = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - r.left) * (CANVAS_W / r.width),
+        y: (e.clientY - r.top)  * (CANVAS_H / r.height)
+      };
+    }
+
+    function onDown(pos) {
+      if (ballActive) return;
+      const dx = pos.x - ball.position.x;
+      const dy = pos.y - ball.position.y;
+      if (Math.sqrt(dx*dx + dy*dy) < BALL_R + 22) {
+        isDragging  = true;
+        dragCurrent = { ...pos };
+      }
+    }
+
+    function onMove(pos) {
+      if (isDragging) dragCurrent = { ...pos };
+    }
+
+    function onUp(pos) {
+      if (!isDragging) return;
+      isDragging = false;
+
+      const dx   = ball.position.x - pos.x;
+      const dy   = ball.position.y - pos.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 6) { dragCurrent = null; return; }
+
+      const MAX_DRAG = 160;
+      const POWER    = 0.19;
+      const clamped  = Math.min(dist, MAX_DRAG);
+      const vx = (dx / dist) * clamped * POWER;
+      const vy = (dy / dist) * clamped * POWER;
+
+      Body.setStatic(ball, false);
+      Body.setVelocity(ball, { x: vx, y: vy });
+      ballActive      = true;
+      scoredThisThrow = false;
+      ballPassedAbove = false;
+      dragCurrent     = null;
+    }
+
+    canvas.addEventListener("mousedown",  e => onDown(getPos(e)));
+    canvas.addEventListener("mousemove",  e => onMove(getPos(e)));
+    canvas.addEventListener("mouseup",    e => onUp(getPos(e)));
+    canvas.addEventListener("touchstart", e => { e.preventDefault(); onDown(getPos(e.touches[0])); }, { passive: false });
+    canvas.addEventListener("touchmove",  e => { e.preventDefault(); onMove(getPos(e.touches[0])); }, { passive: false });
+    canvas.addEventListener("touchend",   e => { e.preventDefault(); onUp(getPos(e.changedTouches[0])); }, { passive: false });
+
+    document.getElementById("reset-btn").addEventListener("click", () => {
+      score = 0;
+      document.getElementById("score").textContent = 0;
+      hoopY   = 180;
+      hoopDir = 1;
+      Body.setPosition(rimL,  { x: HOOP_X - HOOP_W/2, y: hoopY });
+      Body.setPosition(rimR,  { x: HOOP_X + HOOP_W/2, y: hoopY });
+      Body.setPosition(board, { x: HOOP_X + HOOP_W/2 + 6, y: hoopY - 35 });
+      sparkParticles    = [];
+      screenFlash       = 0;
+      resetState();
+    });
+
+    // ── Detekcja punktu ──
+    Events.on(engine, "afterUpdate", () => {
+      if (!ballActive || scoredThisThrow) return;
+
+      const bx = ball.position.x;
+      const by = ball.position.y;
+      const vy = ball.velocity.y;
+
+      const inX = bx > HOOP_X - HOOP_W/2 + BALL_R * 0.4 &&
+                  bx < HOOP_X + HOOP_W/2 - BALL_R * 0.4;
+
+      if (inX && by < hoopY - 4 && vy > 0) ballPassedAbove = true;
+
+      if (ballPassedAbove && inX && by > hoopY + 4 && vy > 0) {
+        scoredThisThrow = true;
+        resetting = true;
+        score++;
+        if (score > best) best = score;
+        document.getElementById("score").textContent = score;
+        document.getElementById("best").textContent  = best;
+
+        // Efekty przy trafieniu
+        triggerFlash();
+        netRipple      = 1.0;
+        netRippleTimer = 0;
+
+        const label = score > 0 && score % 5 === 0 ? `🔥 ${score}` : "+1";
+        showPopup(label);
+        setTimeout(resetState, 1000);
+      }
+
+      // chybienie
+      if (!resetting && (by > CANVAS_H - 30 || bx < -150 || bx > CANVAS_W + 150)) {
+        resetting = true;
+        score = 0;
+        document.getElementById("score").textContent = 0;
+        hoopY   = 180;
+        hoopDir = 1;
+        Body.setPosition(rimL,  { x: HOOP_X - HOOP_W/2, y: hoopY });
+        Body.setPosition(rimR,  { x: HOOP_X + HOOP_W/2, y: hoopY });
+        Body.setPosition(board, { x: HOOP_X + HOOP_W/2 + 6, y: hoopY - 35 });
+        setTimeout(resetState, 1200);
+      }
+    });
+
+    function showPopup(txt) {
+      const p = document.getElementById("score-popup");
+      p.textContent = txt;
+      p.classList.add("visible");
+      setTimeout(() => p.classList.remove("visible"), 1100);
+    }
+
+    // ── Trajektoria ──
+    function calcTraj(sx, sy, vx, vy, steps) {
+      const pts = [];
+      let x = sx, y = sy, dvx = vx, dvy = vy;
+      const fa = 1 - 0.013;
+      const g  = 0.55;
+      for (let i = 0; i < steps; i++) {
+        dvx *= fa; dvy *= fa; dvy += g;
+        x += dvx; y += dvy;
+        pts.push({ x, y });
+        if (y > CANVAS_H) break;
+      }
+      return pts;
+    }
+
+    // ── Oblicz poświatę kosza ──
+    function updateHoopGlow() {
+      if (!ballActive || !ball) { hoopGlow *= 0.9; return; }
+      const dx = ball.position.x - HOOP_X;
+      const dy = ball.position.y - hoopY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const target = dist < 120 ? (1 - dist / 120) : 0;
+      hoopGlow += (target - hoopGlow) * 0.12;
+    }
+
+    // ── Rysowanie ──
+    function draw() {
+      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+      // tło
+      ctx.fillStyle = "#0a0f1c";
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+      // siatka tła
+      ctx.strokeStyle = "rgba(0,180,216,0.05)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x < CANVAS_W; x += 50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,CANVAS_H); ctx.stroke(); }
+      for (let y = 0; y < CANVAS_H; y += 50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(CANVAS_W,y); ctx.stroke(); }
+
+      // łuk strefy rzutów
+      ctx.strokeStyle = "rgba(0,180,216,0.09)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(HOOP_X, CANVAS_H, 230, Math.PI, 0);
+      ctx.stroke();
+
+      // ── poświata kosza ──
+      drawHoopGlow(hoopGlow);
+
+      // ── słupek — metaliczny, z gradientem ──
+      ctx.save();
+      const poleX = HOOP_X + HOOP_W/2 + 10;
+      const poleGrad = ctx.createLinearGradient(poleX - 5, 0, poleX + 5, 0);
+      poleGrad.addColorStop(0,   "#1e293b");
+      poleGrad.addColorStop(0.4, "#475569");
+      poleGrad.addColorStop(0.7, "#334155");
+      poleGrad.addColorStop(1,   "#0f172a");
+      ctx.strokeStyle = poleGrad;
+      ctx.lineWidth = 10;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(poleX, CANVAS_H);
+      ctx.lineTo(poleX, hoopY - 80);
+      ctx.stroke();
+      // highlight na słupku
+      ctx.strokeStyle = "rgba(148,163,184,0.18)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(poleX - 2, CANVAS_H);
+      ctx.lineTo(poleX - 2, hoopY - 80);
+      ctx.stroke();
+      ctx.restore();
+
+      // ── tablica — szklana, z ramką i odbiciem ──
+      const brdX = HOOP_X + HOOP_W/2 + 3;
+      const brdY = hoopY - 82;
+      const brdW = 16;
+      const brdH = 94;
+
+      // tło tablicy
+      ctx.fillStyle = "rgba(148,163,184,0.08)";
+      ctx.strokeStyle = "rgba(148,163,184,0.35)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(brdX, brdY, brdW, brdH, 3);
+      ctx.fill();
+      ctx.stroke();
+
+      // lewy highlight na tablicy (odbicie)
+      const brdHl = ctx.createLinearGradient(brdX, 0, brdX + brdW, 0);
+      brdHl.addColorStop(0,   "rgba(255,255,255,0.14)");
+      brdHl.addColorStop(0.4, "rgba(255,255,255,0.05)");
+      brdHl.addColorStop(1,   "rgba(255,255,255,0)");
+      ctx.fillStyle = brdHl;
+      ctx.beginPath();
+      ctx.roundRect(brdX, brdY, brdW, brdH, 3);
+      ctx.fill();
+
+      // prostokąt celowania (pomarańczowy)
+      ctx.strokeStyle = "rgba(249,115,22,0.55)";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(brdX + 2, hoopY - 30, brdW - 4, 30);
+
+      // wewnętrzny znacznik
+      ctx.strokeStyle = "rgba(249,115,22,0.25)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(brdX + 4, hoopY - 26, brdW - 8, 22);
+
+      // ── siatka kosza (z animacją ripple) ──
+      drawNet();
+
+      // ── ślad ognia za piłką ──
+      drawTrail();
+
+      // ── poprzeczka obręczy — metaliczna, 3D ──
+      ctx.save();
+      if (netRipple > 0) {
+        ctx.shadowColor = "#f97316";
+        ctx.shadowBlur  = 14 * netRipple;
+      }
+
+      // grubszy cień pod obręczą
+      ctx.strokeStyle = "rgba(0,0,0,0.4)";
+      ctx.lineWidth = 8;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(HOOP_X - HOOP_W/2, hoopY + 2);
+      ctx.lineTo(HOOP_X + HOOP_W/2, hoopY + 2);
+      ctx.stroke();
+
+      // gradient na samej rurze
+      const rimGrad = ctx.createLinearGradient(0, hoopY - 5, 0, hoopY + 5);
+      rimGrad.addColorStop(0,    "#fcd34d"); // blask od góry
+      rimGrad.addColorStop(0.25, "#f97316");
+      rimGrad.addColorStop(0.6,  "#c2410c");
+      rimGrad.addColorStop(1,    "#7c2d12");
+      ctx.strokeStyle = rimGrad;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(HOOP_X - HOOP_W/2, hoopY);
+      ctx.lineTo(HOOP_X + HOOP_W/2, hoopY);
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      ctx.restore();
+
+      // kółka na końcach obręczy — 3D
+      [HOOP_X - HOOP_W/2, HOOP_X + HOOP_W/2].forEach(rx => {
+        // cień
+        ctx.beginPath();
+        ctx.arc(rx, hoopY + 1.5, RIM_R + 1, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0,0,0,0.3)";
+        ctx.fill();
+        // kołnierz
+        const rg = ctx.createRadialGradient(rx - 1.5, hoopY - 1.5, 0.5, rx, hoopY, RIM_R + 2);
+        rg.addColorStop(0,   "#fcd34d");
+        rg.addColorStop(0.4, "#f97316");
+        rg.addColorStop(1,   "#92400e");
+        ctx.beginPath();
+        ctx.arc(rx, hoopY, RIM_R + 2, 0, Math.PI * 2);
+        ctx.fillStyle = rg;
+        ctx.fill();
+      });
+
+      // ── iskry ──
+      drawSparks();
+
+      // ── flash ekranu ──
+      drawFlash();
+
+      // trajektoria
+      if (isDragging && dragCurrent) {
+        const dx   = ball.position.x - dragCurrent.x;
+        const dy   = ball.position.y - dragCurrent.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist > 8) {
+          const clamped = Math.min(dist, 160);
+          const vx = (dx / dist) * clamped * 0.19;
+          const vy = (dy / dist) * clamped * 0.19;
+          const pts = calcTraj(ball.position.x, ball.position.y, vx, vy, 60);
+
+          for (let i = 0; i < pts.length; i += 2) {
+            ctx.beginPath();
+            ctx.arc(pts[i].x, pts[i].y, 2.5, 0, Math.PI*2);
+            ctx.fillStyle = `rgba(0,180,216,${(1 - i/pts.length) * 0.65})`;
+            ctx.fill();
+          }
+
+          ctx.save();
+          ctx.setLineDash([4, 7]);
+          ctx.strokeStyle = "rgba(0,180,216,0.35)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(ball.position.x, ball.position.y);
+          ctx.lineTo(dragCurrent.x, dragCurrent.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.restore();
+        }
+      }
+
+      // ── piłka (na wierzchu trailów) ──
+      drawBall(ball.position.x, ball.position.y, ball.angle);
+    }
+
+    function drawBall(x, y, angle) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      // cień pod piłką
+      const shadowG = ctx.createRadialGradient(2, BALL_R * 0.65, 1, 2, BALL_R * 0.65, BALL_R * 1.1);
+      shadowG.addColorStop(0, "rgba(0,0,0,0.4)");
+      shadowG.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.ellipse(2, BALL_R * 0.72, BALL_R * 0.85, BALL_R * 0.30, 0, 0, Math.PI * 2);
+      ctx.fillStyle = shadowG;
+      ctx.fill();
+
+      ctx.rotate(angle);
+
+      // ── główna sfera — matowa skóra
+      const g = ctx.createRadialGradient(
+        -BALL_R * 0.18, -BALL_R * 0.20, BALL_R * 0.05,
+         BALL_R * 0.15,  BALL_R * 0.15, BALL_R * 1.08
+      );
+      g.addColorStop(0,    "#d9541a"); // lekko jaśniejszy środek (diffuse light)
+      g.addColorStop(0.40, "#c44812");
+      g.addColorStop(0.72, "#9e340c");
+      g.addColorStop(0.90, "#7a2508");
+      g.addColorStop(1,    "#4e1504"); // ciemna krawędź — głębia sfery
+
+      ctx.beginPath();
+      ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+
+      // ── szwy (clipowane do koła) ──
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
+      ctx.clip();
+
+      const R = BALL_R;
+
+      // helper — każdy szew = ciemny rowek + jasna nitka obok
+      function seam(pts, width = 2.0, alpha = 0.72) {
+        // rowek
+        ctx.strokeStyle = `rgba(12, 4, 0, ${alpha})`;
+        ctx.lineWidth   = width * 0.7;
+        ctx.lineCap     = "round";
+        ctx.beginPath();
+        ctx.moveTo(pts[0], pts[1]);
+        ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+        ctx.stroke();
+
+        // jasna nitka (lekki highlight)
+        ctx.strokeStyle = "rgba(220, 110, 40, 0.25)";
+        ctx.lineWidth   = width * 0.45;
+        ctx.beginPath();
+        ctx.moveTo(pts[0] + 1.2, pts[1] - 1.0);
+        ctx.bezierCurveTo(
+          pts[2] + 1.2, pts[3] - 1.0,
+          pts[4] + 1.2, pts[5] - 1.0,
+          pts[6] + 1.2, pts[7] - 1.0
+        );
+        ctx.stroke();
+      }
+
+      // Prawdziwa koszykówka: 4 szwy tworzące 2 przecinające się "S-krzywe".
+      const tiltX = R * 0.25; // przesunięcie "kamery"
+      const squash = 0.95;    // spłaszczenie perspektywy
+
+      // pionowe S — przesunięte i asymetryczne
+      seam([
+        tiltX * 0.2, -R,
+        R * 0.6 + tiltX, -R * 0.6,
+        R * 0.9 + tiltX,  R * 0.4,
+        tiltX * 0.3,  R
+      ], 1.5, 0.75);
+
+      // poziome S — też lekko „przekrzywione”
+      seam([
+        -R, 0,
+        -R * 0.6, R*0.2,
+        R * 0.4, R*0.1,
+        R,  0
+      ], 1.5, 0.75);
+
+      seam([
+        -R, -R * 0.1,
+        -R * 0.8, -R * 1.1 * squash,
+        R * 0.5, -R * 0.7 * squash,
+        R*0.5,  R * 0.1
+      ], 1.5, 0.75);
+
+      seam([
+        -R,  R * 0.1,
+        -R * 0.8,  R * 1.2 * squash,
+        R * 0.5,  R * 0.7 * squash,
+        R*0.5, R * 0.1
+      ], 1.5, 0.75);
+
+      ctx.restore();
+
+      // ── obwódka sfery ──
+      ctx.beginPath();
+      ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(0,0,0,0.35)";
+      ctx.lineWidth   = 1.1;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawNet() {
+      const lx = HOOP_X - HOOP_W/2;
+      const rx = HOOP_X + HOOP_W/2;
+      const ty = hoopY;
+
+      // ripple: siatka "faluje" po trafieniu
+      const rippleAmp = netRipple * 5;
+      const by = hoopY + 44 + Math.sin(netRippleTimer * 0.3) * rippleAmp;
+
+      const alpha = 0.2 + netRipple * 0.5;
+      const r = Math.floor(255 * netRipple);
+      const g = Math.floor(255 * (1 - netRipple * 0.5));
+      ctx.strokeStyle = `rgba(${r}, ${g}, 255, ${alpha})`;
+      ctx.lineWidth = 1 + netRipple * 1.5;
+
+      for (let i = 0; i <= 5; i++) {
+        const t  = i / 5;
+        const tx = lx + t * HOOP_W;
+        const bx = HOOP_X + (t - 0.5) * HOOP_W * 0.4;
+        // każda linka siatki "podskakuje" z przesunięciem fazowym
+        const rippleY = by + Math.sin(netRippleTimer * 0.25 + i * 0.9) * rippleAmp * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(bx, rippleY);
+        ctx.stroke();
+      }
+      for (let row = 1; row <= 3; row++) {
+        const t = row / 4;
+        const y = ty + (by - ty) * t;
+        const s = t * HOOP_W * 0.3;
+        ctx.beginPath();
+        ctx.moveTo(lx + s, y);
+        ctx.lineTo(rx - s, y);
+        ctx.stroke();
+      }
+
+      if (netRipple > 0) {
+        netRippleTimer++;
+        netRipple -= 0.018;
+        if (netRipple < 0) netRipple = 0;
+      }
+    }
+
+    // ── Pętla ──
+    Runner.run(Runner.create(), engine);
+
+    (function loop() {
+      // ruchomy kosz po osiągnięciu 10 punktów
+      if (score >= 10) {
+        hoopY += hoopDir * HOOP_SPEED;
+        if (hoopY > HOOP_Y_MAX || hoopY < HOOP_Y_MIN) hoopDir *= -1;
+
+        Body.setPosition(rimL,  { x: HOOP_X - HOOP_W/2, y: hoopY });
+        Body.setPosition(rimR,  { x: HOOP_X + HOOP_W/2, y: hoopY });
+        Body.setPosition(board, { x: HOOP_X + HOOP_W/2 + 6, y: hoopY - 35 });
+      }
+
+      // aktualizacja efektów
+      if (ballActive && ball) addTrail(ball.position.x, ball.position.y);
+      updateTrail();
+      updateSparks();
+      updateHoopGlow();
+
+      draw();
+      requestAnimationFrame(loop);
+    })();
+
+  })();
+  </script>
+</body>
+</html>
