@@ -31,7 +31,6 @@
           <div class="score-label">Najlepszy</div>
           <div class="score-value" id="best">0</div>
         </div>
-        <button class="ctrl-btn" id="reset-btn">↺ Reset</button>
       </div>
 
       <div class="game-canvas-wrap">
@@ -64,7 +63,8 @@
     let   hoopDir   = 1;
     const HOOP_Y_MIN  = 120;
     const HOOP_Y_MAX  = 280;
-    const HOOP_SPEED  = 1.2;
+    const HOOP_SPEED      = 1.2;
+    const HOOP_SPEED_FAST = 2.6;
 
     // ── Piłka ──
     const BALL_R = 18;
@@ -90,6 +90,12 @@
     let ball, ballActive, isDragging, dragCurrent, scoredThisThrow, ballPassedAbove;
     let score = 0, best = 0;
     let resetting = false;
+
+    // ── Licznik czasu na rzut (od 5. trafienia) ──
+    const SHOT_CLOCK_DURATION = 4000; // ms
+    let shotClockActive  = false;
+    let shotClockStart   = 0;
+    let shotClockTimeout = null;
 
     // ── Efekty wizualne ──
 
@@ -208,13 +214,56 @@
       ctx.fill();
     }
 
+    // ── Shot clock — auto-rzut po upływie czasu ──
+    function autoThrow() {
+      if (ballActive || resetting) return;
+      // rzuć zgodnie z aktualną trajektorią; jeśli brak dragCurrent — losowy kąt w stronę kosza
+      let vx, vy;
+      if (dragCurrent) {
+        const dx   = ball.position.x - dragCurrent.x;
+        const dy   = ball.position.y - dragCurrent.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist >= 6) {
+          const clamped = Math.min(dist, 160);
+          vx = (dx / dist) * clamped * 0.19;
+          vy = (dy / dist) * clamped * 0.19;
+        }
+      }
+      if (vx === undefined) {
+        // brak przeciągnięcia — rzut domyślny w kierunku kosza z losową siłą
+        const dx   = HOOP_X - ball.position.x;
+        const dy   = hoopY  - ball.position.y - 40;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const power = 0.13 + Math.random() * 0.06;
+        vx = (dx / dist) * 90 * power;
+        vy = (dy / dist) * 90 * power;
+      }
+      Body.setStatic(ball, false);
+      Body.setVelocity(ball, { x: vx, y: vy });
+      ballActive      = true;
+      scoredThisThrow = false;
+      ballPassedAbove = false;
+      isDragging      = false;
+      dragCurrent     = null;
+      shotClockActive = false;
+    }
+
+    function startShotClock() {
+      shotClockActive = true;
+      shotClockStart  = performance.now();
+      if (shotClockTimeout) clearTimeout(shotClockTimeout);
+      shotClockTimeout = setTimeout(() => {
+        autoThrow();
+      }, SHOT_CLOCK_DURATION);
+    }
+
     // ── Reset stanu ──
     function resetState() {
       resetting = false;
       if (ball) World.remove(world, ball);
       const sp = randomStart();
       ball = Bodies.circle(sp.x, sp.y, BALL_R, {
-        restitution: 0.75,
+        restitution: 0.88,
         friction: 0.05,
         frictionAir: 0.013,
         density: 0.003,
@@ -227,6 +276,11 @@
       scoredThisThrow = false;
       ballPassedAbove = false;
       trailParticles  = [];
+
+      // uruchom licznik jeśli score >= 5
+      if (shotClockTimeout) clearTimeout(shotClockTimeout);
+      shotClockActive = false;
+      if (score >= 5 && Math.floor(score / 5) % 2 === 1) startShotClock();
     }
     resetState();
 
@@ -289,6 +343,10 @@
       scoredThisThrow = false;
       ballPassedAbove = false;
       dragCurrent     = null;
+
+      // gracz rzucił — zatrzymaj licznik
+      if (shotClockTimeout) clearTimeout(shotClockTimeout);
+      shotClockActive = false;
     }
 
     canvas.addEventListener("mousedown",  e => onDown(getPos(e)));
@@ -297,19 +355,6 @@
     canvas.addEventListener("touchstart", e => { e.preventDefault(); onDown(getPos(e.touches[0])); }, { passive: false });
     canvas.addEventListener("touchmove",  e => { e.preventDefault(); onMove(getPos(e.touches[0])); }, { passive: false });
     canvas.addEventListener("touchend",   e => { e.preventDefault(); onUp(getPos(e.changedTouches[0])); }, { passive: false });
-
-    document.getElementById("reset-btn").addEventListener("click", () => {
-      score = 0;
-      document.getElementById("score").textContent = 0;
-      hoopY   = 180;
-      hoopDir = 1;
-      Body.setPosition(rimL,  { x: HOOP_X - HOOP_W/2, y: hoopY });
-      Body.setPosition(rimR,  { x: HOOP_X + HOOP_W/2, y: hoopY });
-      Body.setPosition(board, { x: HOOP_X + HOOP_W/2 + 6, y: hoopY - 35 });
-      sparkParticles    = [];
-      screenFlash       = 0;
-      resetState();
-    });
 
     // ── Detekcja punktu ──
     Events.on(engine, "afterUpdate", () => {
@@ -337,7 +382,7 @@
         netRipple      = 1.0;
         netRippleTimer = 0;
 
-        const label = score > 0 && score % 5 === 0 ? `🔥 ${score}` : "+1";
+        const label = score === 20 ? `🚨 20!` : (score > 0 && score % 5 === 0 ? `🔥 ${score}` : "+1");
         showPopup(label);
         setTimeout(resetState, 1000);
       }
@@ -402,13 +447,6 @@
       for (let x = 0; x < CANVAS_W; x += 50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,CANVAS_H); ctx.stroke(); }
       for (let y = 0; y < CANVAS_H; y += 50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(CANVAS_W,y); ctx.stroke(); }
 
-      // łuk strefy rzutów
-      ctx.strokeStyle = "rgba(0,180,216,0.09)";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(HOOP_X, CANVAS_H, 230, Math.PI, 0);
-      ctx.stroke();
-
       // ── poświata kosza ──
       drawHoopGlow(hoopGlow);
 
@@ -438,9 +476,9 @@
 
       // ── tablica — szklana, z ramką i odbiciem ──
       const brdX = HOOP_X + HOOP_W/2 + 3;
-      const brdY = hoopY - 82;
+      const brdY = hoopY - 85;
       const brdW = 16;
-      const brdH = 94;
+      const brdH = 100;
 
       // tło tablicy
       ctx.fillStyle = "rgba(148,163,184,0.08)";
@@ -450,7 +488,7 @@
       ctx.roundRect(brdX, brdY, brdW, brdH, 3);
       ctx.fill();
       ctx.stroke();
-
+      
       // lewy highlight na tablicy (odbicie)
       const brdHl = ctx.createLinearGradient(brdX, 0, brdX + brdW, 0);
       brdHl.addColorStop(0,   "rgba(255,255,255,0.14)");
@@ -461,16 +499,6 @@
       ctx.roundRect(brdX, brdY, brdW, brdH, 3);
       ctx.fill();
 
-      // prostokąt celowania (pomarańczowy)
-      ctx.strokeStyle = "rgba(249,115,22,0.55)";
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(brdX + 2, hoopY - 30, brdW - 4, 30);
-
-      // wewnętrzny znacznik
-      ctx.strokeStyle = "rgba(249,115,22,0.25)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(brdX + 4, hoopY - 26, brdW - 8, 22);
-
       // ── siatka kosza (z animacją ripple) ──
       drawNet();
 
@@ -478,9 +506,11 @@
       drawTrail();
 
       // ── poprzeczka obręczy — metaliczna, 3D ──
+      // przy 20+ punktach obręcz staje się czerwona (sygnał trudniejszego poziomu)
+      const rimHot = score >= 20;
       ctx.save();
       if (netRipple > 0) {
-        ctx.shadowColor = "#f97316";
+        ctx.shadowColor = rimHot ? "#ef4444" : "#f97316";
         ctx.shadowBlur  = 14 * netRipple;
       }
 
@@ -495,10 +525,17 @@
 
       // gradient na samej rurze
       const rimGrad = ctx.createLinearGradient(0, hoopY - 5, 0, hoopY + 5);
-      rimGrad.addColorStop(0,    "#fcd34d"); // blask od góry
-      rimGrad.addColorStop(0.25, "#f97316");
-      rimGrad.addColorStop(0.6,  "#c2410c");
-      rimGrad.addColorStop(1,    "#7c2d12");
+      if (rimHot) {
+        rimGrad.addColorStop(0,    "#fca5a5");
+        rimGrad.addColorStop(0.25, "#ef4444");
+        rimGrad.addColorStop(0.6,  "#b91c1c");
+        rimGrad.addColorStop(1,    "#7f1d1d");
+      } else {
+        rimGrad.addColorStop(0,    "#fcd34d");
+        rimGrad.addColorStop(0.25, "#f97316");
+        rimGrad.addColorStop(0.6,  "#c2410c");
+        rimGrad.addColorStop(1,    "#7c2d12");
+      }
       ctx.strokeStyle = rimGrad;
       ctx.lineWidth = 6;
       ctx.beginPath();
@@ -511,16 +548,20 @@
 
       // kółka na końcach obręczy — 3D
       [HOOP_X - HOOP_W/2, HOOP_X + HOOP_W/2].forEach(rx => {
-        // cień
         ctx.beginPath();
         ctx.arc(rx, hoopY + 1.5, RIM_R + 1, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(0,0,0,0.3)";
         ctx.fill();
-        // kołnierz
         const rg = ctx.createRadialGradient(rx - 1.5, hoopY - 1.5, 0.5, rx, hoopY, RIM_R + 2);
-        rg.addColorStop(0,   "#fcd34d");
-        rg.addColorStop(0.4, "#f97316");
-        rg.addColorStop(1,   "#92400e");
+        if (rimHot) {
+          rg.addColorStop(0,   "#fca5a5");
+          rg.addColorStop(0.4, "#ef4444");
+          rg.addColorStop(1,   "#7f1d1d");
+        } else {
+          rg.addColorStop(0,   "#fcd34d");
+          rg.addColorStop(0.4, "#f97316");
+          rg.addColorStop(1,   "#92400e");
+        }
         ctx.beginPath();
         ctx.arc(rx, hoopY, RIM_R + 2, 0, Math.PI * 2);
         ctx.fillStyle = rg;
@@ -564,8 +605,59 @@
         }
       }
 
+      // ── licznik czasu na rzut ──
+      drawShotClock();
+
       // ── piłka (na wierzchu trailów) ──
       drawBall(ball.position.x, ball.position.y, ball.angle);
+    }
+
+    function drawShotClock() {
+      if (!shotClockActive || ballActive) return;
+
+      const elapsed  = performance.now() - shotClockStart;
+      const remaining = Math.max(0, SHOT_CLOCK_DURATION - elapsed);
+      const frac     = remaining / SHOT_CLOCK_DURATION; // 1→0
+      const secs     = Math.ceil(remaining / 1000);
+
+      const cx = ball.position.x;
+      const cy = ball.position.y;
+      const R  = BALL_R + 11;
+
+      // kolor: zielony → żółty → czerwony
+      let r, g, b;
+      if (frac > 0.5) {
+        // zielony → żółty
+        const t = (frac - 0.5) * 2;
+        r = Math.round(255 * (1 - t));
+        g = 220;
+        b = 0;
+      } else {
+        // żółty → czerwony
+        const t = frac * 2;
+        r = 255;
+        g = Math.round(180 * t);
+        b = 0;
+      }
+      const color = `rgb(${r},${g},${b})`;
+
+      // szara podstawa łuku
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2, false);
+      ctx.strokeStyle = "rgba(255,255,255,0.10)";
+      ctx.lineWidth   = 3;
+      ctx.lineCap     = "round";
+      ctx.stroke();
+
+      // kolorowy łuk — zanika zgodnie z pozostałym czasem
+      const endAngle = -Math.PI / 2 + Math.PI * 2 * frac;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, -Math.PI / 2, endAngle, false);
+      ctx.strokeStyle = color;
+      ctx.lineWidth   = 3;
+      ctx.lineCap     = "round";
+      ctx.stroke();
+
     }
 
     function drawBall(x, y, angle) {
@@ -724,9 +816,10 @@
     Runner.run(Runner.create(), engine);
 
     (function loop() {
-      // ruchomy kosz po osiągnięciu 10 punktów
+      // ruchomy kosz po osiągnięciu 10 punktów, szybszy po 20
       if (score >= 10) {
-        hoopY += hoopDir * HOOP_SPEED;
+        const currentSpeed = score >= 20 ? HOOP_SPEED_FAST : HOOP_SPEED;
+        hoopY += hoopDir * currentSpeed;
         if (hoopY > HOOP_Y_MAX || hoopY < HOOP_Y_MIN) hoopDir *= -1;
 
         Body.setPosition(rimL,  { x: HOOP_X - HOOP_W/2, y: hoopY });

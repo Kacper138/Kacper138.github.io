@@ -6,6 +6,7 @@
   margin: auto;
   padding: 0 20px;
   position: relative;
+  z-index: 1000;
 }
 
 .logo {
@@ -75,7 +76,7 @@
     border-radius: 10px;
     padding: 10px 0;
     min-width: 180px;
-    z-index: 99;
+    z-index: 1000;
   }
 
   .nav-links.open { display: flex; }
