@@ -18,24 +18,54 @@
   <section class="portfolio">
     <h2>Moje Projekty</h2>
     <div class="project-grid">
-      <div class="project-card">
+
+      <div class="project-card" onclick="toggleCard('details-robot', this)">
         <img src="img/robot.jpg" alt="Projekt 1">
         <h3>Efektor robota przemysłowego</h3>
         <p>Projekt efektora robota dozującego leki opartego na STM32.</p>
-        <a href="#" class="btn">Zobacz więcej</a>
+        <div class="card-details" id="details-robot">
+          <p>Efektor zaprojektowany do precyzyjnego dozowania leków, sterowany mikrokontrolerem STM32. Projekt obejmował pełen proces — od schematu elektronicznego przez PCB, model CAD aż po wydruk 3D obudowy.</p>
+          <div class="card-tags">
+            <span class="tag">STM32</span>
+            <span class="tag">C</span>
+            <span class="tag">CAD</span>
+            <span class="tag">SolidWorks</span>
+            <span class="tag">Druk 3D</span>
+            <span class="tag">PCB</span>
+          </div>
+        </div>
       </div>
-      <div class="project-card">
+
+      <div class="project-card" onclick="toggleCard('details-doniczka', this)">
         <img src="img/projekt2.png" alt="Projekt 2">
         <h3>Lewitująca doniczka</h3>
         <p>Projekt lewitującej doniczki sterowany przez Arduino.</p>
-        <a href="#" class="btn">Zobacz więcej</a>
+        <div class="card-details" id="details-doniczka">
+          <p>Doniczka utrzymywana w powietrzu dzięki układowi elektromagnesów sterowanych przez Arduino. 
+            Projekt własnej płytki PCB oraz wydrukowana obudowa w technologii 3D. Projekt czasowo wstrzymany. TBC...</p>
+          <div class="card-tags">
+            <span class="tag">Arduino</span>
+            <span class="tag">Elektromagnesy</span>
+            <span class="tag">Regulator PID</span>
+            <span class="tag">PCB</span>
+            <span class="tag">Druk 3D</span>
+          </div>
+        </div>
       </div>
+
     </div>
   </section>
 
   <div data-include="components/footer.html"></div>
-
   <script src="js/include.js"></script>
+
+  <script>
+    function toggleCard(detailsId, card) {
+      const details = document.getElementById(detailsId);
+      card.classList.toggle("expanded");
+      details.style.display = details.style.display === "block" ? "none" : "block";
+    }
+  </script>
 
 </body>
 </html>
