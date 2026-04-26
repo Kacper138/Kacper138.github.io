@@ -234,10 +234,10 @@
       "pasmo": "Bieszczady",
       "coords": [49.075, 22.726],
       "height": "1346 m.n.p.m",
-      "date": "",
-      "image": "",
-      "done": false,
-      "route": "https://mapa-turystyczna.pl/route/3e73h"
+      "date": "25.04.2026",
+      "image": "img/tarnica.jpg",
+      "done": true,
+      "route": "https://mapa-turystyczna.pl/route/11yjb"
     },
     {
       "name": "Śnieżnik",
