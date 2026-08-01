@@ -154,10 +154,10 @@
       "pasmo": "Pieniny",
       "coords": [49.380, 20.556],
       "height": "1050 m.n.p.m",
-      "date": "",
-      "image": "",
-      "done": false,
-      "route": "https://mapa-turystyczna.pl"
+      "date": "29.07.2026",
+      "image": "wysoka.jpg",
+      "done": true,
+      "route": "https://mapa-turystyczna.pl/route/slrm"
     },
     {
       "name": "Orlica",
@@ -214,10 +214,10 @@
       "pasmo": "Beskid Sądecki",
       "coords": [49.450, 20.604],
       "height": "1262 m.n.p.m",
-      "date": "",
-      "image": "",
-      "done": false,
-      "route": "https://mapa-turystyczna.pl"
+      "date": "29.07.2026",
+      "image": "radziejowa.jpg",
+      "done": true,
+      "route": "https://mapa-turystyczna.pl/route/slrm"
     },
     {
       "name": "Turbacz",
